@@ -87,8 +87,6 @@ def is_blacklisted(table_name, path=None, blacklist=None):
     """Allow blacklisting by tablename."""
     if blacklist is None:
         specs_path = os.path.dirname(path)
-        if os.path.basename(specs_path) != "specs":
-            specs_path = os.path.basename(specs_path)
         blacklist_path = os.path.join(specs_path, "blacklist")
         if not os.path.exists(blacklist_path):
             return False

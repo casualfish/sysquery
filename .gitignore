@@ -55,3 +55,24 @@ doxygen/latex
 *~
 \#*\#
 *.swp
+
+#Cmake files
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Makefile
+cmake_install.cmake
+install_manifest.txt
+*.cmake
+libglog-prefix
+third-party/
+generated/
+osquery/example_extension.ext
+osquery/osquery_additional_tests
+osquery/osquery_benchmarks
+osquery/osquery_kernel_benchmarks
+osquery/osquery_kernel_tests
+osquery/osquery_tables_tests
+osquery/osquery_tests
+osquery/osqueryd
+osquery/osqueryi
