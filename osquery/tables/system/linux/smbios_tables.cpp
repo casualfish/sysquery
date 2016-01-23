@@ -26,6 +26,7 @@ namespace tables {
 
 #define kLinuxSMBIOSRawAddress_ 0xF0000
 #define kLinuxSMBIOSRawLength_ 0x10000
+#define WORD(x) (uint16_t)((x)[0]+((x)[1]<<8))
 
 const std::string kLinuxEFISystabPath = "/sys/firmware/efi/systab";
 
@@ -194,5 +195,168 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   return results;
 }
+
+static void cpuid(int op, int *eax, int *ebx, int *ecx, int *edx)
+{
+    __asm__ __volatile("cpuid"
+                : "=a" (*eax),
+                  "=b" (*ebx),
+                  "=c" (*ecx),
+                  "=d" (*edx)
+                : "a" (op)
+                : "cc" );
+}
+
+static bool checkTurboStatus()
+{
+  //turbo state flag
+  int eax, ebx, ecx, edx;
+  cpuid (6, &eax, &ebx, &ecx, &edx);
+  return ((eax & 0x2) >> 1);
+}
+
+QueryData genCPUInfo(QueryContext& context) {
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    VLOG(1) << "Could not read SMBIOS memory";
+    return {};
+  }
+
+  QueryData results;
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+    if (hdr->type != 4 || size < 0x1a) {
+      return;
+    }
+
+    Row r;
+    uint8_t* data = address + hdr->length;
+    r["vendor"] = dmi_string(data, address, 0x07);
+    r["model"] = dmi_string(data, address, 0x10);
+    r["slot"] = dmi_string(data, address, 0x04);
+    std::stringstream id;
+    id << std::dec << WORD(address + 0x14);
+    r["maxfreq"] = id.str();
+    r["turbo"] = checkTurboStatus() ? "ON" : "OFF";
+    int eax, ebx, ecx, edx;
+    char vendor[12];
+    cpuid(0, &eax, &ebx, &ecx, &edx);
+    ((unsigned *)vendor)[0] = ebx; // EBX
+    ((unsigned *)vendor)[1] = edx; // EDX
+    ((unsigned *)vendor)[2] = ecx; // ECX
+    std::string cpuVendor = std::string(vendor, 12);
+    // Get CPU features
+    cpuid(1, &eax, &ebx, &ecx, &edx);
+    unsigned cpuFeatures = edx; // EDX
+    // Logical core count per CPU
+    cpuid(1, &eax, &ebx, &ecx, &edx);
+    unsigned logical = (ebx >> 16) & 0xff; // EBX[23:16]
+    unsigned cores = logical;
+    if (cpuVendor == "GenuineIntel") {
+      // Get DCP cache info
+      cpuid(4, &eax, &ebx, &ecx, &edx);
+      cores = ((eax >> 26) & 0x3f) + 1; // EAX[31:26] + 1
+    } else if (cpuVendor == "AuthenticAMD") {
+      // Get NC: Number of CPU cores - 1
+      cpuid(0x80000008, &eax, &ebx, &ecx, &edx);
+      cores = ((unsigned)(ecx & 0xff)) + 1; // ECX[7:0] + 1
+    }
+    bool hyperThreads = cpuFeatures & (1 << 28) && cores < logical;
+    r["ht"] = hyperThreads ? "ON" : "OFF";
+    results.push_back(r);
+  }));
+
+  return results;
+}
+
+QueryData genServerInfo(QueryContext& context) {
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    VLOG(1) << "Could not read SMBIOS memory";
+    return {};
+  }
+
+  QueryData results;
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+    if (hdr->type != 1 || size < 0x8) {
+      return;
+    }
+
+    Row r;
+    uint8_t* data = address + hdr->length;
+    r["vendor"] = dmi_string(data, address, 0x04);
+    r["model"] = dmi_string(data, address, 0x05);
+    r["raw_model"] = dmi_string(data, address, 0x05);
+    r["sn"] = dmi_string(data, address, 0x07);
+    char hostname[1024];
+    int ret = gethostname(hostname, 1024);
+    if (ret < 0 )
+      r["hostname"] = "unknown";
+    else
+      r["hostname"] = hostname; 
+
+    results.push_back(r);
+  }));
+
+  return results;
+}
+
+static int getDIMMSize(uint16_t code)
+{
+  int size = 0;
+  if(code == 0 || code == 0xFFFF)
+    size = 0;
+  else {
+    if (code & 0x8000)
+      size = code / 1024;
+    else
+      size = code;
+  }
+  return size;
+}
+
+static int getDIMMWidth(uint16_t code)
+{
+  int width = 0;
+  if (code == 0xFFFF || code == 0 || code < 32)
+    width = 0;
+  else
+    width = code;
+  return width;
+}
+
+QueryData genDIMMInfo(QueryContext& context) {
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    VLOG(1) << "Could not read SMBIOS memory";
+    return {};
+  }
+
+  QueryData results;
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+    if (hdr->type != 17 || size < 0x1b) {
+      return;
+    }
+
+    Row r;
+    uint8_t* data = address + hdr->length;
+    r["vendor"] = dmi_string(data, address, 0x17);
+    r["model"] = dmi_string(data, address, 0x1a);
+    r["sn"] = dmi_string(data, address, 0x18);
+    r["slot"] = dmi_string(data, address, 0x10);
+    std::stringstream id;
+    id << std::dec << getDIMMSize(WORD(address + 0x0C));
+    r["capacity"] = id.str();
+    id.clear();
+    id << std::dec << getDIMMWidth(WORD(address + 0x0A));
+    r["width"] = id.str();
+    results.push_back(r);
+  }));
+
+  return results;
+}
+
 }
 }

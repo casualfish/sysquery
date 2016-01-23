@@ -1,0 +1,11 @@
+table_name("dimm_info")
+description("Information about dimm.")
+schema([
+    Column("vendor", TEXT, "server vendor"),
+    Column("model", TEXT, "server model"),
+    Column("sn", TEXT, "dimm sn"),
+    Column("slot", TEXT, "dimm slot"),
+    Column("capacity", INTEGER, "dimm capacity"),
+    Column("width", INTEGER, "dimm width"),
+])
+implementation("system@genDIMMInfo")

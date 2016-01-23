@@ -1,0 +1,10 @@
+table_name("server_info")
+description("Information about server manu.")
+schema([
+    Column("hostname", TEXT, "server hostname"),
+    Column("vendor", TEXT, "server vendor"),
+    Column("model", TEXT, "server model"),
+    Column("sn", TEXT, "server sn"),
+    Column("raw_model", TEXT, "server raw model"),
+])
+implementation("system@genServerInfo")

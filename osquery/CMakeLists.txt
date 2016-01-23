@@ -155,7 +155,6 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
   set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
 
-  SET(CMAKE_EXE_LINKER_FLAGS "-static")
   add_executable(shell devtools/shell.cpp main/shell.cpp)
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery)
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)

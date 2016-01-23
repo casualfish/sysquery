@@ -1,0 +1,11 @@
+table_name("cpu_info")
+description("Information about cpu.")
+schema([
+    Column("vendor", TEXT, "cpu vendor"),
+    Column("model", TEXT, "cpu model"),
+    Column("slot", TEXT, "cpu slot info"),
+    Column("maxfreq", TEXT, "cpu max freq"),
+    Column("turbo", TEXT, "turbo status on/off"),
+    Column("ht", TEXT, "ht status on/off"),
+])
+implementation("system@genCPUInfo")
