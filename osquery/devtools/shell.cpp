@@ -1729,9 +1729,9 @@ int launchIntoShell(int argc, char **argv) {
   } else {
     // Run commands received from standard input
     if (stdin_is_interactive) {
-      printBold("osquery");
+      //printBold("osquery");
       printf(
-          " - being built, with love, at Facebook\n"
+      //    " - being built, with love, at Facebook\n"
           "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
       printf("Using a ");
       printBold("virtual database");

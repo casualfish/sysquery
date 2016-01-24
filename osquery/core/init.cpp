@@ -212,7 +212,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     if ((help == "--help" || help == "-help" || help == "--h" ||
          help == "-h") &&
         tool != OSQUERY_TOOL_TEST) {
-      printUsage(binary_, tool_);
+      //printUsage(binary_, tool_);
       ::exit(0);
     }
   }
