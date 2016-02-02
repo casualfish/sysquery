@@ -6,19 +6,19 @@ SELF_ABS=${SELF_PWD}/${SELF_DIR}
 source ${SELF_ABS}/conf/sysquery.conf
 set -m
 
-if [ -n "$LD_LIBRARY_PATH" ]; then
-  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SYSQUERY_DIR/lib
-else
-  LD_LIBRARY_PATH=/home/sysquery/lib
-fi
-export LD_LIBRARY_PATH
+#if [ -n "$LD_LIBRARY_PATH" ]; then
+#  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SYSQUERY_DIR/lib
+#else
+#  LD_LIBRARY_PATH=/home/sysquery/lib
+#fi
+#export LD_LIBRARY_PATH
 SYSQUERY_BIN=$SYSQUERY_DIR/bin/sysquery_6
-HOST_NAME=$($SYSQUERY_BIN --json "select hostname from server_info;")
-HOST_SN=$($SYSQUERY_BIN --json "select sn from server_info;")
+HOST_NAME=$($SYSQUERY_BIN --json "select \"overall_status.hostname\" from server_info;"| tr -d '\n')
+HOST_SN=$($SYSQUERY_BIN --json "select \"basic.sn\" from server_info;"| tr -d '\n')
 
 cpu_monitor() {
   while true;do
-    CPU_INFO=$($SYSQUERY_BIN --json "select * from cpu_info;")
+    CPU_INFO=$($SYSQUERY_BIN --json "select * from cpu_info;"| tr -d '\n')
     CPU_INFO="hostname=$HOST_NAME&host_sn=$HOST_SN&component_list={\"cpu\":$CPU_INFO}"
     curl --connect-timeout 10 -s $COLLECT_POST_URL -d "$CPU_INFO"
     sleep $CPU_MON_PERIOD
@@ -27,7 +27,7 @@ cpu_monitor() {
 
 hdd_monitor() {
   while true;do
-    HDD_INFO=$($SYSQUERY_BIN --json "select * from block_devices;")
+    HDD_INFO=$($SYSQUERY_BIN --json "select * from block_devices;"| tr -d '\n')
     HDD_INFO="hostname=$HOST_NAME&host_sn=$HOST_SN&component_list={\"hdd\":$HDD_INFO}"
     curl --connect-timeout 10 -s $COLLECT_POST_URL -d "$HDD_INFO"
     sleep $DISK_MON_PERIOD
@@ -36,7 +36,7 @@ hdd_monitor() {
 
 dimm_monitor() {
   while true;do
-    DIMM_INFO=$($SYSQUERY_BIN --json "select * from dimm_info;")
+    DIMM_INFO=$($SYSQUERY_BIN --json "select * from dimm_info;"| tr -d '\n')
     DIMM_INFO="hostname=$HOST_NAME&host_sn=$HOST_SN&component_list={\"dimm\":$DIMM_INFO}"
     curl --connect-timeout 10 -s $COLLECT_POST_URL -d "$DIMM_INFO"
     sleep $DIMM_MON_PERIOD
@@ -45,11 +45,11 @@ dimm_monitor() {
 
 server_monitor() {
   while true;do
-    DIMM_INFO=$($SYSQUERY_BIN --json "select * from dimm_info;")
-    HDD_INFO=$($SYSQUERY_BIN --json "select * from block_devices;")
-    CPU_INFO=$($SYSQUERY_BIN --json "select * from cpu_info;")
-    SERVER_INFO=$($SYSQUERY_BIN --json "select * from server_info;")
-    ALL_INFO="hostConfig={\"cpu\":$CPU_INFO, \"hdd\":$HDD_INFO, \"dimm\":$DIMM_INFO, \"server\": $SERVER_INFO}"
+    DIMM_INFO=$($SYSQUERY_BIN --json "select * from dimm_info;"| tr -d '\n')
+    HDD_INFO=$($SYSQUERY_BIN --json "select * from block_devices;"| tr -d '\n')
+    CPU_INFO=$($SYSQUERY_BIN --json "select * from cpu_info;"| tr -d '\n')
+    SERVER_INFO=$($SYSQUERY_BIN --json "select * from server_info;"| tr -d '\n')
+    ALL_INFO="hostConfig={\"cpu\":$CPU_INFO, \"hdd\":$HDD_INFO, \"dimm\":$DIMM_INFO, \"server\":$SERVER_INFO}"
     curl --connect-timeout 10 -s $COLLECT_POST_URL -d "$ALL_INFO"
     sleep $SERVER_MON_PERIOD
   done

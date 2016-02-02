@@ -2,11 +2,11 @@ table_name("server_info")
 description("Information about server manu.")
 schema([
     Column("timestamp", TEXT, "record timestamp"),
-    Column("hostname", TEXT, "server hostname"),
-    Column("main_ip", TEXT, "host main ip(based on hostname)"),
-    Column("vendor", TEXT, "server vendor"),
-    Column("model", TEXT, "server model"),
-    Column("sn", TEXT, "server sn"),
-    Column("raw_model", TEXT, "server raw model"),
+    Column("overall_status.hostname", TEXT, "server hostname"),
+    Column("overall_status.main_ip", TEXT, "host main ip(based on hostname)"),
+    Column("basic.manufacturer", TEXT, "server vendor"),
+    Column("basic.model", TEXT, "server model"),
+    Column("basic.sn", TEXT, "server sn"),
+    Column("basic.raw_model", TEXT, "server raw model"),
 ])
 implementation("system@genServerInfo")

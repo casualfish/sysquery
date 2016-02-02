@@ -234,13 +234,13 @@ QueryData genCPUInfo(QueryContext& context) {
     Row r;
     uint8_t* data = address + hdr->length;
     r["timestamp"] = std::to_string(time(NULL));
-    r["vendor"] = dmi_string(data, address, 0x07);
-    r["model"] = dmi_string(data, address, 0x10);
-    r["slot"] = dmi_string(data, address, 0x04);
+    r["basic.manufacturer"] = dmi_string(data, address, 0x07);
+    r["basic.model"] = dmi_string(data, address, 0x10);
+    r["basic.slot"] = dmi_string(data, address, 0x04);
     std::stringstream id;
     id << std::dec << WORD(address + 0x14);
-    r["maxfreq"] = id.str();
-    r["turbo"] = checkTurboStatus() ? "ON" : "OFF";
+    r["basic.freq"] = id.str();
+    r["performace.turbo"] = checkTurboStatus() ? "ON" : "OFF";
     int eax, ebx, ecx, edx;
     char vendor[12];
     cpuid(0, &eax, &ebx, &ecx, &edx);
@@ -265,7 +265,7 @@ QueryData genCPUInfo(QueryContext& context) {
       cores = ((unsigned)(ecx & 0xff)) + 1; // ECX[7:0] + 1
     }
     bool hyperThreads = cpuFeatures & (1 << 28) && cores < logical;
-    r["ht"] = hyperThreads ? "ON" : "OFF";
+    r["performace.ht"] = hyperThreads ? "ON" : "OFF";
     results.push_back(r);
   }));
 
@@ -307,23 +307,23 @@ QueryData genServerInfo(QueryContext& context) {
     Row r;
     uint8_t* data = address + hdr->length;
     r["timestamp"] = std::to_string(time(NULL));
-    r["vendor"] = dmi_string(data, address, 0x04);
-    r["model"] = dmi_string(data, address, 0x05);
-    r["raw_model"] = dmi_string(data, address, 0x05);
-    r["sn"] = dmi_string(data, address, 0x07);
+    r["basic.manufacturer"] = dmi_string(data, address, 0x04);
+    r["basic.model"] = dmi_string(data, address, 0x05);
+    r["basic.raw_model"] = dmi_string(data, address, 0x05);
+    r["basic.sn"] = dmi_string(data, address, 0x07);
     char hostname[1024];
     int ret = gethostname(hostname, 1024);
     if (ret < 0 ) {
-      r["hostname"] = "unknown";
-      r["main_ip"] = "unknown";
+      r["overall_status.hostname"] = "unknown";
+      r["overall_status.main_ip"] = "unknown";
     } else {
-      r["hostname"] = hostname;
+      r["overall_status.hostname"] = hostname;
       char ip[100];
       int ret = hostnameToIp(hostname, ip);
       if (ret < 0)
-        r["main_ip"] = "unknown";
+        r["overall_status.main_ip"] = "unknown";
       else
-        r["main_ip"] = ip;
+        r["overall_status.main_ip"] = ip;
     }
 
     results.push_back(r);
@@ -346,16 +346,6 @@ static int getDIMMSize(uint16_t code)
   return size;
 }
 
-static int getDIMMWidth(uint16_t code)
-{
-  int width = 0;
-  if (code == 0xFFFF || code == 0 || code < 32)
-    width = 0;
-  else
-    width = code;
-  return width;
-}
-
 QueryData genDIMMInfo(QueryContext& context) {
   LinuxSMBIOSParser parser;
   if (!parser.discover()) {
@@ -373,16 +363,13 @@ QueryData genDIMMInfo(QueryContext& context) {
     Row r;
     uint8_t* data = address + hdr->length;
     r["timestamp"] = std::to_string(time(NULL));
-    r["vendor"] = dmi_string(data, address, 0x17);
-    r["model"] = dmi_string(data, address, 0x1a);
-    r["sn"] = dmi_string(data, address, 0x18);
-    r["slot"] = dmi_string(data, address, 0x10);
+    r["basic.manufacturer"] = dmi_string(data, address, 0x17);
+    r["basic.model"] = dmi_string(data, address, 0x1a);
+    r["basic.sn"] = dmi_string(data, address, 0x18);
+    r["basic.slot"] = dmi_string(data, address, 0x10);
     std::stringstream id;
     id << std::dec << getDIMMSize(WORD(address + 0x0C));
-    r["capacity"] = id.str();
-    id.clear();
-    id << std::dec << getDIMMWidth(WORD(address + 0x0A));
-    r["width"] = id.str();
+    r["basic.capacity"] = id.str();
     results.push_back(r);
   }));
 

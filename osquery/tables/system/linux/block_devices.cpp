@@ -32,30 +32,23 @@ static void getBlockDevice(struct udev_device *dev, QueryData &results) {
 
   r["timestamp"] = std::to_string(time(NULL));
   // The device name may be blank but will have a string value.
-  r["name"] = name;
-
-  struct udev_device *subdev =
-      udev_device_get_parent_with_subsystem_devtype(dev, "block", nullptr);
-  if (subdev != nullptr) {
-    r["parent"] = udev_device_get_devnode(subdev);
-  }
 
   const char *size = udev_device_get_sysattr_value(dev, "size");
   if (size != nullptr) {
-    r["size"] = size;
+    r["basic.capacity"] = size;
   }
 
-  subdev = udev_device_get_parent_with_subsystem_devtype(dev, "scsi", nullptr);
+  struct udev_device *subdev = udev_device_get_parent_with_subsystem_devtype(dev, "scsi", nullptr);
   if (subdev != nullptr) {
     const char *model = udev_device_get_sysattr_value(subdev, "model");
     std::string model_string = std::string(model);
     boost::algorithm::trim(model_string);
-    r["model"] = model_string;
+    r["basic.model"] = model_string;
 
     model = udev_device_get_sysattr_value(subdev, "vendor");
     model_string = std::string(model);
     boost::algorithm::trim(model_string);
-    r["vendor"] = model_string;
+    r["basic.manufacturer"] = model_string;
   }
 
   blkid_probe pr = blkid_new_probe_from_filename(name);
@@ -67,13 +60,10 @@ static void getBlockDevice(struct udev_device *dev, QueryData &results) {
     if (!blkid_do_safeprobe(pr)) {
       const char *blk_value = nullptr;
       if (!blkid_probe_lookup_value(pr, "TYPE", &blk_value, nullptr)) {
-        r["type"] = blk_value;
+        r["basic.interface"] = blk_value;
       }
       if (!blkid_probe_lookup_value(pr, "UUID", &blk_value, nullptr)) {
-        r["uuid"] = blk_value;
-      }
-      if (!blkid_probe_lookup_value(pr, "LABEL", &blk_value, nullptr)) {
-        r["label"] = blk_value;
+        r["basic.sn"] = blk_value;
       }
     }
     blkid_free_probe(pr);

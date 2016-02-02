@@ -1,12 +1,11 @@
 table_name("dimm_info")
-description("Information about dimm.")
+description("Information about ")
 schema([
     Column("timestamp", TEXT, "record timestamp"),
-    Column("vendor", TEXT, "server vendor"),
-    Column("model", TEXT, "server model"),
-    Column("sn", TEXT, "dimm sn"),
-    Column("slot", TEXT, "dimm slot"),
-    Column("capacity", INTEGER, "dimm capacity"),
-    Column("width", INTEGER, "dimm width"),
+    Column("basic.manufacturer", TEXT, "server vendor"),
+    Column("basic.model", TEXT, "server model"),
+    Column("basic.sn", TEXT, "dimm sn"),
+    Column("basic.slot", TEXT, "dimm slot"),
+    Column("basic.capacity", INTEGER, "dimm capacity"),
 ])
 implementation("system@genDIMMInfo")
