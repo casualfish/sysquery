@@ -2,6 +2,7 @@ table_name("server_info")
 description("Information about server manu.")
 schema([
     Column("hostname", TEXT, "server hostname"),
+    Column("main_ip", TEXT, "host main ip(based on hostname)"),
     Column("vendor", TEXT, "server vendor"),
     Column("model", TEXT, "server model"),
     Column("sn", TEXT, "server sn"),
