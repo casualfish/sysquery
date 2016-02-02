@@ -1,6 +1,7 @@
 table_name("dimm_info")
 description("Information about dimm.")
 schema([
+    Column("timestamp", TEXT, "record timestamp"),
     Column("vendor", TEXT, "server vendor"),
     Column("model", TEXT, "server model"),
     Column("sn", TEXT, "dimm sn"),

@@ -233,6 +233,7 @@ QueryData genCPUInfo(QueryContext& context) {
 
     Row r;
     uint8_t* data = address + hdr->length;
+    r["timestamp"] = std::to_string(time(NULL));
     r["vendor"] = dmi_string(data, address, 0x07);
     r["model"] = dmi_string(data, address, 0x10);
     r["slot"] = dmi_string(data, address, 0x04);
@@ -305,6 +306,7 @@ QueryData genServerInfo(QueryContext& context) {
 
     Row r;
     uint8_t* data = address + hdr->length;
+    r["timestamp"] = std::to_string(time(NULL));
     r["vendor"] = dmi_string(data, address, 0x04);
     r["model"] = dmi_string(data, address, 0x05);
     r["raw_model"] = dmi_string(data, address, 0x05);
@@ -370,6 +372,7 @@ QueryData genDIMMInfo(QueryContext& context) {
 
     Row r;
     uint8_t* data = address + hdr->length;
+    r["timestamp"] = std::to_string(time(NULL));
     r["vendor"] = dmi_string(data, address, 0x17);
     r["model"] = dmi_string(data, address, 0x1a);
     r["sn"] = dmi_string(data, address, 0x18);

@@ -1,6 +1,7 @@
 table_name("server_info")
 description("Information about server manu.")
 schema([
+    Column("timestamp", TEXT, "record timestamp"),
     Column("hostname", TEXT, "server hostname"),
     Column("main_ip", TEXT, "host main ip(based on hostname)"),
     Column("vendor", TEXT, "server vendor"),

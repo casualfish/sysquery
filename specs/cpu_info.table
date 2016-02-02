@@ -1,6 +1,7 @@
 table_name("cpu_info")
 description("Information about cpu.")
 schema([
+    Column("timestamp", TEXT, "record timestamp"),
     Column("vendor", TEXT, "cpu vendor"),
     Column("model", TEXT, "cpu model"),
     Column("slot", TEXT, "cpu slot info"),

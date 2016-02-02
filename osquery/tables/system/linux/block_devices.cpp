@@ -30,6 +30,7 @@ static void getBlockDevice(struct udev_device *dev, QueryData &results) {
     return;
   }
 
+  r["timestamp"] = std::to_string(time(NULL));
   // The device name may be blank but will have a string value.
   r["name"] = name;
 
