@@ -1,0 +1,6 @@
+table_name("motherboard_info")
+description("Information about motherboard.")
+schema([
+    Column("overall_status.mb_v", TEXT, "motherboard FW version"),
+])
+implementation("system@genMBInfo")

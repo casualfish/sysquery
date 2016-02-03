@@ -1,11 +1,14 @@
 table_name("cpu_info")
-description("Information about ")
+description("Information about cpu")
 schema([
     Column("timestamp", TEXT, "record timestamp"),
     Column("basic.manufacturer", TEXT, "cpu vendor"),
     Column("basic.model", TEXT, "cpu model"),
     Column("basic.slot", TEXT, "cpu slot info"),
     Column("basic.freq", TEXT, "cpu max freq"),
+    Column("basic.core_n", INTEGER, "cpu logical core num"),
+    Column("basic.l2_c", INTEGER, "cpu l2 cache size"),
+    Column("basic.l3_c", INTEGER, "cpu l3 cache size"),
     Column("performace.turbo", TEXT, "turbo status on/off"),
     Column("performace.ht", TEXT, "ht status on/off"),
 ])

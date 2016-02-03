@@ -13,6 +13,7 @@ set -m
 #fi
 #export LD_LIBRARY_PATH
 SYSQUERY_BIN=$SYSQUERY_DIR/bin/sysquery_6
+JQ_BIN=$SYSQUERY_DIR/bin/jq
 HOST_NAME=$($SYSQUERY_BIN --json "select \"overall_status.hostname\" from server_info;"| tr -d '\n')
 HOST_SN=$($SYSQUERY_BIN --json "select \"basic.sn\" from server_info;"| tr -d '\n')
 
@@ -25,9 +26,18 @@ cpu_monitor() {
   done
 }
 
+nic_monitor() {
+  while true;do
+    NIC_INFO=$($SYSQUERY_BIN --json "select \"nic.basic.manufacturer\", \"nic.basic.version\", \"nic.basic.bandwidth\" from interface_details;"| tr -d '\n')
+    NIC_INFO="hostname=$HOST_NAME&host_sn=$HOST_SN&component_list={\"nic\":$NIC_INFO}"
+    curl --connect-timeout 10 -s $COLLECT_POST_URL -d "$NIC_INFO"
+    sleep $NIC_MON_PERIOD
+  done
+}
+
 hdd_monitor() {
   while true;do
-    HDD_INFO=$($SYSQUERY_BIN --json "select * from block_devices;"| tr -d '\n')
+    HDD_INFO=$($SYSQUERY_BIN --json "select * from disk_devices;"| tr -d '\n')
     HDD_INFO="hostname=$HOST_NAME&host_sn=$HOST_SN&component_list={\"hdd\":$HDD_INFO}"
     curl --connect-timeout 10 -s $COLLECT_POST_URL -d "$HDD_INFO"
     sleep $DISK_MON_PERIOD
@@ -48,8 +58,12 @@ server_monitor() {
     DIMM_INFO=$($SYSQUERY_BIN --json "select * from dimm_info;"| tr -d '\n')
     HDD_INFO=$($SYSQUERY_BIN --json "select * from block_devices;"| tr -d '\n')
     CPU_INFO=$($SYSQUERY_BIN --json "select * from cpu_info;"| tr -d '\n')
-    SERVER_INFO=$($SYSQUERY_BIN --json "select * from server_info;"| tr -d '\n')
-    ALL_INFO="hostConfig={\"cpu\":$CPU_INFO, \"hdd\":$HDD_INFO, \"dimm\":$DIMM_INFO, \"server\":$SERVER_INFO}"
+    NIC_INFO=$($SYSQUERY_BIN --json "select \"nic.basic.manufacturer\", \"nic.basic.version\", \"nic.basic.bandwidth\" from interface_details;"| tr -d '\n')
+    SERVER_INFO1=$($SYSQUERY_BIN --json "select * from server_info;"| tr -d '\n'| $JQ_BIN .[])
+    SERVER_INFO2=$($SYSQUERY_BIN --json "select sum(\"overall_status.dimm_mn\") \"overall_status.dimm_mn\" from dimm_mn;;"| tr -d '\n'| $JQ_BIN .[])
+    SERVER_INFO3=$($SYSQUERY_BIN --json "select * from motherboard_info;"| tr -d '\n'| $JQ_BIN .[])
+    SERVER_INFO=$(echo $SERVER_INFO1 $SERVER_INFO2 $SERVER_INFO3 | $JQ_BIN -s '.[0] * .[1] * .[2]'| tr -d '\n')
+    ALL_INFO="hostConfig={\"cpu\":$CPU_INFO, \"hdd\":$HDD_INFO, \"dimm\":$DIMM_INFO, \"nic\":$NIC_INFO, \"server\":$SERVER_INFO}"
     curl --connect-timeout 10 -s $COLLECT_POST_URL -d "$ALL_INFO"
     sleep $SERVER_MON_PERIOD
   done

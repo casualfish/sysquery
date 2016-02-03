@@ -12,8 +12,10 @@
 #include <sstream>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include <boost/noncopyable.hpp>
+#include <thread>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -188,7 +190,7 @@ QueryData genPlatformInfo(QueryContext& context) {
     r["size"] = std::to_string(firmware_size * 1024);
 
     // Minor and major BIOS revisions.
-    r["revision"] = std::to_string((size_t)address[0x14]) + "." +
+    r["overall_status.bios_v"] = std::to_string((size_t)address[0x14]) + "." +
                     std::to_string((size_t)address[0x15]);
     r["volume_size"] = "0";
     r["extra"] = "";
@@ -217,6 +219,36 @@ static bool checkTurboStatus()
   return ((eax & 0x2) >> 1);
 }
 
+#define HT_BIT             0x10000000     // EDX[28]  Bit 28 is set if HT is supported
+static bool checkHTStatus()
+{
+  int eax, ebx, ecx, edx;
+  cpuid (1, &eax, &ebx, &ecx, &edx);
+  return edx & HT_BIT;
+}
+
+static int getSocketNum(void)
+{
+  FILE *cmd = popen("grep '^physical' /proc/cpuinfo | tail -1 | cut -d':' -f2 | tr -d ' '", "r");
+  if (cmd == NULL)
+    return -1;
+
+  unsigned nprocs;
+  size_t n;
+  char buff[8];
+
+  if ((n = fread(buff, 1, sizeof(buff)-1, cmd)) <= 0)
+    return -1;
+
+  buff[n] = '\0';
+  if (sscanf(buff, "%u", &nprocs) != 1)
+    return -1;
+
+  pclose(cmd);
+
+  return nprocs + 1;
+}
+
 QueryData genCPUInfo(QueryContext& context) {
   LinuxSMBIOSParser parser;
   if (!parser.discover()) {
@@ -241,31 +273,10 @@ QueryData genCPUInfo(QueryContext& context) {
     id << std::dec << WORD(address + 0x14);
     r["basic.freq"] = id.str();
     r["performace.turbo"] = checkTurboStatus() ? "ON" : "OFF";
-    int eax, ebx, ecx, edx;
-    char vendor[12];
-    cpuid(0, &eax, &ebx, &ecx, &edx);
-    ((unsigned *)vendor)[0] = ebx; // EBX
-    ((unsigned *)vendor)[1] = edx; // EDX
-    ((unsigned *)vendor)[2] = ecx; // ECX
-    std::string cpuVendor = std::string(vendor, 12);
-    // Get CPU features
-    cpuid(1, &eax, &ebx, &ecx, &edx);
-    unsigned cpuFeatures = edx; // EDX
-    // Logical core count per CPU
-    cpuid(1, &eax, &ebx, &ecx, &edx);
-    unsigned logical = (ebx >> 16) & 0xff; // EBX[23:16]
-    unsigned cores = logical;
-    if (cpuVendor == "GenuineIntel") {
-      // Get DCP cache info
-      cpuid(4, &eax, &ebx, &ecx, &edx);
-      cores = ((eax >> 26) & 0x3f) + 1; // EAX[31:26] + 1
-    } else if (cpuVendor == "AuthenticAMD") {
-      // Get NC: Number of CPU cores - 1
-      cpuid(0x80000008, &eax, &ebx, &ecx, &edx);
-      cores = ((unsigned)(ecx & 0xff)) + 1; // ECX[7:0] + 1
-    }
-    bool hyperThreads = cpuFeatures & (1 << 28) && cores < logical;
-    r["performace.ht"] = hyperThreads ? "ON" : "OFF";
+    r["performace.ht"] = checkHTStatus() ? "ON" : "OFF";
+    r["basic.core_n"] = INTEGER(sysconf(_SC_NPROCESSORS_CONF)/getSocketNum());
+    r["basic.l2_c"] = INTEGER(sysconf(_SC_LEVEL2_CACHE_SIZE));
+    r["basic.l3_c"] = INTEGER(sysconf(_SC_LEVEL3_CACHE_SIZE));
     results.push_back(r);
   }));
 
@@ -288,6 +299,30 @@ static int hostnameToIp(char * hostname , char* ip)
   }
 
   return -2;
+}
+
+QueryData genMBInfo(QueryContext& context) {
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    VLOG(1) << "Could not read SMBIOS memory";
+    return {};
+  }
+
+  QueryData results;
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+    if (hdr->type != 2 || size < 0x8) {
+      return;
+    }
+
+    Row r;
+    uint8_t* data = address + hdr->length;
+    r["overall_status.mb_v"] = dmi_string(data, address, 0x06);
+
+    results.push_back(r);
+  }));
+
+  return results;
 }
 
 QueryData genServerInfo(QueryContext& context) {
@@ -325,6 +360,7 @@ QueryData genServerInfo(QueryContext& context) {
       else
         r["overall_status.main_ip"] = ip;
     }
+    r["overall_status.cpu_n"] = INTEGER(getSocketNum());
 
     results.push_back(r);
   }));
@@ -367,9 +403,29 @@ QueryData genDIMMInfo(QueryContext& context) {
     r["basic.model"] = dmi_string(data, address, 0x1a);
     r["basic.sn"] = dmi_string(data, address, 0x18);
     r["basic.slot"] = dmi_string(data, address, 0x10);
-    std::stringstream id;
-    id << std::dec << getDIMMSize(WORD(address + 0x0C));
-    r["basic.capacity"] = id.str();
+    r["basic.capacity"] = INTEGER(getDIMMSize(WORD(address + 0x0C)));
+    results.push_back(r);
+  }));
+
+  return results;
+}
+
+QueryData genDIMMNum(QueryContext& context) {
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    VLOG(1) << "Could not read SMBIOS memory";
+    return {};
+  }
+
+  QueryData results;
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+    if (hdr->type != 16 || size < 0xf) {
+      return;
+    }
+
+    Row r;
+    r["overall_status.dimm_mn"] = INTEGER(WORD(address + 0x0d));
     results.push_back(r);
   }));
 

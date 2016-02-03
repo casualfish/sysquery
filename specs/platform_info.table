@@ -4,7 +4,7 @@ schema([
     Column("vendor", TEXT, "Platform code vendor"),
     Column("version", TEXT, "Platform code version"),
     Column("date", TEXT, "Self-reported platform code update date"),
-    Column("revision", TEXT, "BIOS major and minor revision"),
+    Column("overall_status.bios_v", TEXT, "BIOS major and minor revision"),
     Column("address", TEXT, "Relative address of firmware mapping"),
     Column("size", TEXT, "Size in bytes of firmware"),
     Column("volume_size", INTEGER, "(Optional) size of firmware volume"),

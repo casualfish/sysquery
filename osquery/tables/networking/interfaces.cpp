@@ -66,12 +66,46 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   results.push_back(r);
 }
 
+static std::string callExternalRountine(const std::string &cmd)
+{
+  FILE *pf;
+  char data[512];
+  memset(data, '\0', 512);
+
+  // Setup our pipe for reading and execute our command.
+  pf = popen(cmd.c_str(), "r");
+  if (!pf)
+    return "";
+
+  // Grab data from process execution
+  fgets(data, 512, pf);
+  pclose(pf);
+  std::string tmp = data;
+  tmp.erase(std::remove(tmp.begin(), tmp.end(), '\n'), tmp.end());
+  return tmp;
+}
+
 void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   Row r;
   if (addr->ifa_name != nullptr) {
     r["interface"] = std::string(addr->ifa_name);
+    std::string cmd = "ethtool -i ";
+    cmd += addr->ifa_name;
+    cmd += " 2>/dev/null | grep -i driver | tail -1 | cut -d':' -f2 | tr -d ' '";
+    r["nic.basic.manufacturer"] = callExternalRountine(cmd);
+    cmd = "ethtool -i ";
+    cmd += addr->ifa_name;
+    cmd += " 2>/dev/null | grep -i firmware-version | tail -1 | cut -d':' -f2 | tr -d ' '";
+    r["nic.basic.version"] = callExternalRountine(cmd);
+    cmd = "ethtool ";
+    cmd += addr->ifa_name;
+    cmd += " 2>/dev/null | grep -i speed | cut -d':' -f2 | tr -d ' '";
+    r["nic.basic.bandwidth"] = callExternalRountine(cmd);
   } else {
     r["interface"] = "";
+    r["nic.basic.manufacturer"] = "";
+    r["nic.basic.version"] = "";
+    r["nic.basic.bandwidth"] = "";
   }
   r["mac"] = macAsString(addr);
 

@@ -1,0 +1,6 @@
+table_name("dimm_mn")
+description("total dimm number.")
+schema([
+    Column("overall_status.dimm_mn", INTEGER, "total dimm number"),
+])
+implementation("system@genDIMMNum")

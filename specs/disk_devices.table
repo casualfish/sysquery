@@ -1,0 +1,15 @@
+table_name("disk_devices")
+description("disk devices info")
+schema([
+  Column("timestamp", TEXT, "record timestamp"),
+	Column("basic.manufacturer", TEXT, "Device device vendor string"),
+	Column("basic.model", TEXT, "Device device model string identifier"),
+	Column("basic.capacity", BIGINT, "Device device size in bytes"),
+	Column("basic.sn", TEXT, "Device Serial code"),
+	Column("basic.interface", TEXT, "Device device type string"),
+	Column("basic.rpm", INTEGER, "rotating speed of disk drive"),
+	Column("basic.media", TEXT, "disk media type: ATA/SAS/SSD"),
+	Column("basic.lss", INTEGER, "disk logical sector size"),
+	Column("basic.pss", INTEGER, "disk physical sector size"),
+])
+implementation("disk_devices@genDiskDevs")

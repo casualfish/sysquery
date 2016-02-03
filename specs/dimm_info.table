@@ -1,5 +1,5 @@
 table_name("dimm_info")
-description("Information about ")
+description("Information about memory")
 schema([
     Column("timestamp", TEXT, "record timestamp"),
     Column("basic.manufacturer", TEXT, "server vendor"),

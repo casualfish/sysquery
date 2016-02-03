@@ -1,9 +1,10 @@
 table_name("server_info")
-description("Information about server manu.")
+description("Information about server.")
 schema([
     Column("timestamp", TEXT, "record timestamp"),
     Column("overall_status.hostname", TEXT, "server hostname"),
     Column("overall_status.main_ip", TEXT, "host main ip(based on hostname)"),
+    Column("overall_status.cpu_n", INTEGER, "host cpu soket num"),
     Column("basic.manufacturer", TEXT, "server vendor"),
     Column("basic.model", TEXT, "server model"),
     Column("basic.sn", TEXT, "server sn"),
