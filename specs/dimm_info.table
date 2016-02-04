@@ -6,6 +6,9 @@ schema([
     Column("basic.model", TEXT, "server model"),
     Column("basic.sn", TEXT, "dimm sn"),
     Column("basic.slot", TEXT, "dimm slot"),
+    Column("basic.logicalslot", INTEGER, "dimm logical slot(cpu's view, in channel/bank)"),
     Column("basic.capacity", INTEGER, "dimm capacity"),
+    Column("basic.freq", INTEGER, "dimm max working freq"),
+    Column("basic.volt", INTEGER, "dimm configured working volt"),
 ])
 implementation("system@genDIMMInfo")

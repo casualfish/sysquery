@@ -404,6 +404,15 @@ QueryData genDIMMInfo(QueryContext& context) {
     r["basic.sn"] = dmi_string(data, address, 0x18);
     r["basic.slot"] = dmi_string(data, address, 0x10);
     r["basic.capacity"] = INTEGER(getDIMMSize(WORD(address + 0x0C)));
+    if (size >= 0x22)
+      r["basic.freq"] = INTEGER(WORD(address + 0x20));
+    else
+      r["basic.freq"] = INTEGER(0);
+    if (size >= 0x28)
+      r["basic.volt"] = INTEGER(WORD(address + 0x26));
+    else
+      r["basic.volt"] = INTEGER(0);
+    r["basic.logicalslot"] = INTEGER(0);
     results.push_back(r);
   }));
 
